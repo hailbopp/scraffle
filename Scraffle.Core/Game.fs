@@ -20,7 +20,7 @@ type Game = GameTurn seq
 
 module Game =
     let handSize = 7
-    let boardSize = 15, 15
+    let boardSize = 15
 
     let private createPlayer bag =
         let (hand, bagState) = { 1 .. handSize }
@@ -34,9 +34,10 @@ module Game =
     
     let create players =
         let newBag = TileBag.create()
-        let (playerSet, bagState) = { 0 .. players }
+        let (playerSet, bagState) = { 1 .. players }
                                     |> Seq.fold (fun (p: Player list, b) _ ->
                                                     let (player, bag) = createPlayer b
                                                     (player :: p, bag)) (List.empty, newBag)
+        let board = Board.create boardSize
 
-        { turnsElapsed = 0; players = playerSet; tileBag = bagState; board = Seq.empty }
+        { turnsElapsed = 0; players = playerSet; tileBag = bagState; board = board }
