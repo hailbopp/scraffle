@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Tile.fs" />
+    <Compile Include="Space.fs" />
     <Compile Include="Board.fs" />
     <Compile Include="Game.fs" />
     <Content Include="packages.config" />

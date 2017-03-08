@@ -12,7 +12,7 @@ type Player = {
 type GameState = {
     turnsElapsed: int;
     players: Player list;
-    board: Space seq seq;
+    board: Board;
     tileBag: TileBag;
 }
 type GameTurn = GameState -> GameState
