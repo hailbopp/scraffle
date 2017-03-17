@@ -5,9 +5,7 @@ open Scraffle.Core.Tile
 type ScoreMultiplierScope = 
     | Letter 
     | Word
-type ScoreMultiplier = { coefficient: double; scope: ScoreMultiplierScope; }
-type Space = { tile: Tile option; multiplier: ScoreMultiplier option; }
-
+type ScoreMultiplier = { coefficient: ScoreValue; scope: ScoreMultiplierScope; }
 
 module ScoreMultiplier =
     (* A MultiplierStrategy is a function that takes in board size, X, and Y, and returns a ScoreMultiplier *)
@@ -20,17 +18,19 @@ module ScoreMultiplier =
                      | xc when xc = middle -> 0
                      | xc when xc < middle -> -1 * (middle - xc)
                      | xc when xc > middle -> xc - middle
+                     | _ -> failwith "wat"
         let cartY = match y with
                      | xc when xc = middle -> 0
                      | yc when yc < middle -> middle - yc
                      | yc when yc > middle -> -1 * (yc - middle)
+                     | _ -> failwith "wat"
         cartX, cartY
 
     let getDoubleWord size x y = 
         let (cx, cy) = cartesian size x y
         match abs cx with
             | i when (abs cy) = i -> 
-                    Some { scope = Word; coefficient = 2.0 }
+                    Some { scope = Word; coefficient = 2 }
             | _ -> None
 
     let getTripleWord size x y = 
@@ -43,7 +43,7 @@ module ScoreMultiplier =
         let onCorner = (abs cx, abs cy) = (maxCart, maxCart)
         
         match onMiddleEdge || onCorner with
-            | true -> Some { scope = Word; coefficient = 3.0 }
+            | true -> Some { scope = Word; coefficient = 3 }
             | _ -> None
 
     /// Each cartesian quadrant contains four triple letter score tiles, one on each interior corner,
@@ -55,7 +55,7 @@ module ScoreMultiplier =
         let coords = cartesian size x y |> (fun (a, b) -> abs a, abs b)        
         let validSet = [(2, 2); (2, high); (high, 2); (high, high);]
         match List.contains coords validSet with
-            | true -> Some { scope = Letter; coefficient = 3.0 }
+            | true -> Some { scope = Letter; coefficient = 3 }
             | _ -> None
 
     let getDoubleLetter size x y =
@@ -68,7 +68,7 @@ module ScoreMultiplier =
         let atInner = (cx, cy) = (innerVal, 1) || (cx, cy) = (1, innerVal)
         let atFirst = (cx, cy) = (1,1)
         match atFirst || atInner || atAxisVal with
-            | true -> Some { scope = Letter; coefficient = 2.0 }
+            | true -> Some { scope = Letter; coefficient = 2 }
             | _ -> None     
     
     let strategies : MultiplierStrategy list = [ getDoubleWord; getTripleWord; getTripleLetter; getDoubleLetter; ]
@@ -89,7 +89,7 @@ module ScoreMultiplier =
                             |> List.map Option.get
 
         match List.length multipliers with
-        | 0 -> None
+        | 0 -> { scope = Letter; coefficient = 1 }
         | _ ->
             let (cx, cy) = cartesian size x y
             let distance = distanceFromOrigin cx cy
@@ -98,12 +98,10 @@ module ScoreMultiplier =
                 |> List.sortByDescending
                     (match distance with
                         | d when (d / (float max)) < 0.5 -> 
-                                (fun m -> m.scope = Letter, m.coefficient * -1.0)
+                                (fun m -> m.scope = Letter, m.coefficient * -1)
                         | _ -> 
                                 (fun m -> m.scope = Word, m.coefficient))
-                |> List.map Some
                 |> List.head
-            
 
     let string multiplier = 
         let coef = multiplier.coefficient |> int |> string
@@ -111,3 +109,16 @@ module ScoreMultiplier =
                         | Letter -> "L"
                         | Word -> "W"
         coef + scope
+
+        
+type Space = { tile: Tile option; multiplier: ScoreMultiplier; }
+
+module Space =
+    let string space = 
+        match space.tile with
+        | None -> "   "
+        | Some t -> 
+            match t with
+            | BlankTile None -> " * "
+            | BlankTile (Some c) -> sprintf " %c " c
+            | LetterTile (l, score) -> sprintf " %c " l
